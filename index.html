@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saniya - The Timeless 3D Journal</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti Dependency Engine Deployment CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --paper-cream: #fbf9f3;
+            --paper-shadow: rgba(0, 0, 0, 0.06);
+            --leather-bound: #241d19;
+            --ink-color: #1c2022;
+            --accent-gold: #b3925d;
+            --tape-tone: rgba(240, 231, 211, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            font-family: 'Cormorant Garamond', serif;
+            background-color: #dfd8c4;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.45) 0%, rgba(0,0,0,0.08) 100%);
+            color: var(--ink-color);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Ambient Music Control Button */
+        .ambient-audio-dock {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 1000;
+        }
+        .audio-toggle-btn {
+            background: var(--paper-cream);
+            border: 1px solid rgba(0,0,0,0.08);
+            padding: 10px 18px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.04);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .audio-toggle-btn:hover {
+            border-color: var(--ink-color);
+            transform: translateY(-1px);
+        }
+
+        /* --- THE 3D HARD-BOUND JOURNAL ARCHITECTURE --- */
+        .journal-3d-scene {
+            position: relative;
+            width: 1050px;
+            height: 650px;
+            perspective: 2000px;
+            z-index: 10;
+        }
+
+        /* Leather Bound Book Frame Cover Backing */
+        .journal-leather-cover {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--leather-bound);
+            border-radius: 6px;
+            box-shadow: 0 40px 90px rgba(36, 29, 25, 0.35), 0 15px 30px rgba(0,0,0,0.15);
+            padding: 10px;
+        }
+
+        .journal-spine-hinge {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #1b1613;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+            border-radius: 4px;
+            display: flex;
+        }
+
+        /* --- THE 3D DOUBLE-SIDED SHEETS SYSTEM --- */
+        .book-sheet-layer {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            right: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .book-sheet-layer.sheet-flipped {
+            transform: rotateY(-180deg);
+        }
+
+        /* Page Front and Page Back structural bounds inside a single sheet */
+        .page-front-surface, .page-back-surface {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+            background: var(--paper-cream);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            padding: 50px 45px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.02);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* The back surface faces backward across the horizontal Y loop flip */
+        .page-back-surface {
+            transform: rotateY(180deg);
+            background: #faf7f0;
+        }
+
+        /* Dynamic shadow maps for spine curves */
+        .page-front-surface::after, .page-back-surface::after {
+            content: '';
+            position: absolute;
+            top: 0; width: 30px; height: 100%;
+            pointer-events: none;
+            z-index: 40;
+        }
+        .page-front-surface::after {
+            left: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 100%);
+        }
+        .page-back-surface::after {
+            right: 0;
+            background: linear-gradient(to left, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 100%);
+        }
+
+        /* Page Content Aligners */
+        .content-align-center { justify-content: center; align-items: center; text-align: center; }
+        .content-align-split { display: flex; flex-direction: column; justify-content: center; }
+
+        /* --- INTERACTIVE 3D POLAROIDS --- */
+        .polaroid-wrapper-box {
+            width: 270px;
+            height: 330px;
+            perspective: 1000px;
+            position: relative;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+        .washi-tape {
+            position: absolute;
+            top: -15px; left: 50%;
+            transform: translateX(-50%) rotate(-1deg);
+            width: 100px; height: 26px;
+            background: var(--tape-tone);
+            z-index: 45;
+        }
+        .polaroid-flipper-core {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.2, 0.85, 0.32, 1.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        }
+        .polaroid-wrapper-box.is-flipped .polaroid-flipper-core {
+            transform: rotateY(180deg);
+        }
+        .polaroid-side-front, .polaroid-side-back {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: #ffffff;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            padding: 15px 15px 45px 15px;
+            border: 1px solid rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+        }
+        .polaroid-side-front .photo-frame-src {
+            width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-color: #f0edf0;
+        }
+        .polaroid-side-front .caption-label {
+            position: absolute;
+            bottom: 10px; left: 0; width: 100%;
+            text-align: center;
+            font-family: 'Caveat', cursive;
+            font-size: 21px;
+        }
+        .polaroid-side-back {
+            transform: rotateY(180deg);
+            background: #fffdf9;
+            padding: 25px;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .polaroid-side-back p {
+            font-family: 'Caveat', cursive;
+            font-size: 22px;
+            line-height: 1.4;
+        }
+
+        /* --- TEXT STYLING AND PROSE --- */
+        .editorial-text-block h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 34px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            padding-bottom: 8px;
+        }
+        .editorial-text-block p {
+            font-size: 18.5px;
+            line-height: 1.8;
+            color: rgba(0,0,0,0.85);
+            margin-bottom: 15px;
+            white-space: pre-line;
+        }
+
+        /* Top Silk Ribbon Tabs Navigation Row */
+        .silk-ribbon-dock {
+            position: absolute;
+            top: -12px;
+            left: 40px;
+            display: flex;
+            gap: 10px;
+            z-index: 500;
+        }
+        .ribbon-tab {
+            background: var(--accent-gold);
+            color: #fff;
+            padding: 10px 10px 22px 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 8.5px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 84%, 0% 100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), background 0.3s;
+        }
+        .ribbon-tab:hover, .ribbon-tab.active-ribbon {
+            transform: translateY(6px);
+            background: #3e322b;
+        }
+
+        /* Bottom HUD Deck Bar Controls */
+        .journal-bottom-hud {
+            position: absolute;
+            bottom: -65px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5px;
+        }
+        .hud-nav-circle {
+            background: var(--paper-cream);
+            border: 1px solid rgba(0,0,0,0.06);
+            color: var(--ink-color);
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+        .hud-nav-circle:hover:not(:disabled) {
+            background: var(--ink-color);
+            color: var(--paper-cream);
+        }
+        .hud-nav-circle:disabled {
+            opacity: 0.2; cursor: not-allowed;
+        }
+        .hud-counter-tag {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        /* Climax Elements */
+        .celebrate-action-btn {
+            background: transparent;
+            border: 1px solid var(--ink-color);
+            padding: 14px 28px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        .celebrate-action-btn:hover {
+            background: var(--ink-color);
+            color: var(--paper-cream);
+        }
+        .climax-signature-reveal {
+            font-family: 'Caveat', cursive;
+            font-size: 62px;
+            color: var(--accent-gold);
+            margin-top: 20px;
+            opacity: 0;
+            transform: scale(0.96);
+            transition: all 1s ease;
+        }
+        .climax-signature-reveal.visible { opacity: 1; transform: scale(1); }
+
+        /* Cover-Specific Elements */
+        .cover-portrait-frame {
+            width: 200px;
+            height: 250px;
+            margin: 20px auto 0 auto;
+            border: 2px solid var(--accent-gold);
+            padding: 6px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: #fff;
+        }
+        .cover-portrait-src {
+            width: 100%;
+            height: 100%;
+            background-image: url('cover.PNG');
+            background-size: cover;
+            background-position: center;
+            background-color: #eae7df;
+        }
+
+        /* Multi-layered stack control variables to ensure active sheets sit perfectly on top */
+        .z-active-top { z-index: 50 !important; pointer-events: auto !important; }
+        .z-active-below { z-index: 40 !important; pointer-events: auto !important; }
+        .z-normal-stack { z-index: 10 !important; pointer-events: none !important; }
+
+        @media (max-width: 950px) {
+            .journal-3d-scene { width: 95%; height: 80vh; }
+            .page-front-surface, .page-back-surface { padding: 30px 20px; }
+            .polaroid-wrapper-box { width: 200px; height: 250px; }
+            .polaroid-side-front .caption-label { font-size: 16px; }
+            .polaroid-side-back p { font-size: 16px; }
+            .editorial-text-block h2 { font-size: 24px; }
+            .editorial-text-block p { font-size: 15px; line-height: 1.6; }
+            .climax-signature-reveal { font-size: 44px; }
+            .cover-portrait-frame { width: 150px; height: 190px; }
+        }
+        /* Love Timer */
+.love-timer{
+    margin-top:20px;
+    padding:14px 18px;
+    border:1px solid rgba(179,146,93,.35);
+    background:rgba(255,255,255,.65);
+    backdrop-filter:blur(8px);
+    border-radius:12px;
+    text-align:center;
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+    max-width:420px;
+}
+
+.love-timer-title{
+    font-family:'Montserrat',sans-serif;
+    font-size:10px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--accent-gold);
+    margin-bottom:12px;
+}
+
+.timer-grid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:10px;
+}
+
+.timer-box{
+    display:flex;
+    flex-direction:column;
+}
+
+.timer-box span:first-child{
+    font-size:24px;
+    font-weight:600;
+    color:var(--ink-color);
+}
+
+.timer-box span:last-child{
+    font-family:'Montserrat',sans-serif;
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:#666;
+}
+
+@media(max-width:768px){
+    .timer-grid{
+        grid-template-columns:repeat(3,1fr);
+    }
+}
+    </style>
+</head>
+<body>
+
+    <audio id="piano-stream-node" loop src="song.mp3"></audio>
+
+    <div class="ambient-audio-dock">
+        <button class="audio-toggle-btn" onclick="toggleAudioStream()">
+            <span id="audio-icon">🔊</span> <span id="audio-string">Audio ON</span>
+        </button>
+    </div>
+
+    <!-- MAIN INTERACTIVE CONTAINER WORLD -->
+    <div class="journal-3d-scene">
+        
+        <!-- Silk Ribbon Bookmarks (Top Navigation Bridge) -->
+        <div class="silk-ribbon-dock">
+            <div class="ribbon-tab active-ribbon" id="ribbon-tab-0" onclick="jumpToSheetIndex(0)">Cover</div>
+            <div class="ribbon-tab" id="ribbon-tab-1" onclick="jumpToSheetIndex(1)">I</div>
+            <div class="ribbon-tab" id="ribbon-tab-2" onclick="jumpToSheetIndex(2)">II</div>
+            <div class="ribbon-tab" id="ribbon-tab-3" onclick="jumpToSheetIndex(3)">III</div>
+            <div class="ribbon-tab" id="ribbon-tab-4" onclick="jumpToSheetIndex(4)">IV</div>
+            <div class="ribbon-tab" id="ribbon-tab-5" onclick="jumpToSheetIndex(5)">V</div>
+            <div class="ribbon-tab" id="ribbon-tab-6" onclick="jumpToSheetIndex(6)">VI</div>
+            <div class="ribbon-tab" id="ribbon-tab-7" onclick="jumpToSheetIndex(7)">VII</div>
+            <div class="ribbon-tab" id="ribbon-tab-8" onclick="jumpToSheetIndex(8)">VIII</div>
+            <div class="ribbon-tab" id="ribbon-tab-9" onclick="jumpToSheetIndex(9)">IX</div>
+            <div class="ribbon-tab" id="ribbon-tab-10" onclick="jumpToSheetIndex(10)">X</div>
+            <div class="ribbon-tab" id="ribbon-tab-11" onclick="jumpToSheetIndex(11)">XI</div>
+            <div class="ribbon-tab" id="ribbon-tab-12" onclick="jumpToSheetIndex(12)">End</div>
+        </div>
+
+        <!-- Rigid Outer Cover Layout Frame -->
+        <div class="journal-leather-cover">
+            <div class="journal-spine-hinge"></div>
+        </div>
+
+        <!-- ================= SHEET LAYER 0 (COVER PAGE & INTRO BACK) ================= -->
+        <div class="book-sheet-layer z-active-top" id="sheet-layer-0">
+            <div class="page-front-surface content-align-center" style="background-color: #f7f3e9;">
+                <span style="font-size: 32px; color: var(--accent-gold);">✨</span>
+                <h1 style="font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 5px; text-transform: uppercase; margin-top: 10px;">Private Journal</h1>
+                
+                <!-- Added Cover Portrait Block -->
+                <div class="cover-portrait-frame">
+                    <div class="cover-portrait-src"></div>
+                </div>
+
+                <div style="font-family: 'Caveat', cursive; font-size: 48px; margin-top: 15px; line-height: 1;">Saniya</div>
+                <div class="love-timer">
+    <div class="love-timer-title">
+        Together Since
+    </div>
+
+    <div class="timer-grid">
+        <div class="timer-box">
+            <span id="years">0</span>
+            <span>Years</span>
+        </div>
+
+        <div class="timer-box">
+            <span id="months">0</span>
+            <span>Months</span>
+        </div>
+
+        <div class="timer-box">
+            <span id="days">0</span>
+            <span>Days</span>
+        </div>
+
+        <div class="timer-box">
+            <span id="hours">0</span>
+            <span>Hours</span>
+        </div>
+
+        <div class="timer-box">
+            <span id="minutes">0</span>
+            <span>Minutes</span>
+        </div>
+
+        <div class="timer-box">
+            <span id="seconds">0</span>
+            <span>Seconds</span>
+        </div>
+    </div>
+</div>
+                <p style="font-style: italic; opacity: 0.5; margin-top: 8px; font-size: 16px;">Click arrows below or tabs to flip pages</p>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>The Prologue</h2>
+                    <p style="font-style: italic; font-size: 20px; line-height: 1.7; color: #555;">
+                        "Standard cards get misplaced over time. I wanted to build an archival space full of genuine thoughts that remains exactly as it is."
+                    </p>
+                    <p>Every page in this book highlights a genuine quality that makes you an unforgettable person. Flip over to open the first notes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 1 (CHAPTER I) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-1">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic1.jpeg');"></div>
+                            <div class="caption-label">Your Smile😊</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"A beautiful smile never goes out of style."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter I — Your Smile</h2>
+                    <p>Your smile is one of the best things about you. It is simple, real, and full of happiness. Sometimes people don't know how much their smile can change someone's day, but I think yours does. I hope you always keep smiling because it looks good on you and makes the people around you happy too.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 2 (CHAPTER II) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-2">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic2.jpeg');"></div>
+                            <div class="caption-label">Your Kind Heart</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"Kindness is your most beautiful quality."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter II — Your Kind Heart</h2>
+                    <p>You have a kind heart, and that is something very special. The way you talk to people, the way you care, and the way you respect everyone says a lot about you. Good looks can get attention, but a good heart earns respect. Never lose this beautiful quality.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 3 (CHAPTER III) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-3">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic3.jpeg');"></div>
+                            <div class="caption-label">A beautiful caring Person</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"The best thing about you is that you are simply yourself."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter III — Stay The Way You Are</h2>
+                    <p>One thing I really like about you is that you don't try to be someone else. You are comfortable being yourself, and that's what makes you different. People may change with time, but I hope your simplicity never changes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 4 (CHAPTER IV) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-4">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic4.jpeg');"></div>
+                            <div class="caption-label">"Uniqunes"</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"It's the little things that make you unforgettable."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter IV — The Little Things</h2>
+                    <p>Sometimes it's not the big things that make a person special. It's the little things . Your smile. Your way of talking. Your expressions. Your smal habits. These little things make you who you are</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 5 (CHAPTER V) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-5">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic5.jpeg');"></div>
+                            <div class="caption-label">Rare Treasure</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"True friends are rare treasures. I am deeply glad that you are a part of my story."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter V — More Than Just A Pretty Face</h2>
+                    <p>Anyone can look good in photos. But not everyone has a beautiful personality. Your kindness, your behaviour, and the way you treat people make you even more beautiful. That is your real beauty.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 6 (CHAPTER VI) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-6">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic6.jpeg');"></div>
+                            <div class="caption-label">Stay as it is</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"Stay the person you are today."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter VI — Never Change These Things</h2>
+                    <p>No matter how much life changes, I hope you never lose your smile, your kindness, your positive attitude, and your caring nature. These things make you who you are</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 7 (CHAPTER VII) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-7">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic7.jpeg');"></div>
+                            <div class="caption-label">Lots of Wishes</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"May this year bring you countless reasons to smile."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter VII — My Wish For You</h2>
+                    <p>I hope this year brings you lots of happiness.
+                    I hope you achieve your dreams.
+                    I hope you meet good people.
+                    And I hope every new day gives you another reason to smile.
+                    Because you truly deserve all the happiness in the world.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 8 (CHAPTER VIII) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-8">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic8.jpeg');"></div>
+                            <div class="caption-label">Thank You</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"Thank you for being a wonderful friend."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter VIII — Thank You</h2>
+                    <p>Thank you for being a good friend.
+                    Thank you for every conversation, every laugh, and every memory.
+                    Life becomes a little better when we have good people around us.
+                    I'm really happy that you're one of them.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 9 (CHAPTER IX - IMAGE PAGE 1) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-9">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic9.jpeg');"></div>
+                            <div class="caption-label">Another Year ✨</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"Another chapter waiting to be beautifully written."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter IX — Another Chapter</h2>
+                    <p>Time passes, but the memories we design remain firmly locked in place. Entering a new year of life isn't just about growing older—it's about adding richer colors to your canvas.</p>
+                    <p>May this brand new horizon present you with unexpected adventures and endless clarity.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 10 (CHAPTER X - IMAGE PAGE 2) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-10">
+            <div class="page-front-surface content-align-center">
+                <div class="washi-tape"></div>
+                <div class="polaroid-wrapper-box" onclick="triggerPolaroidFlip(this)">
+                    <div class="polaroid-flipper-core">
+                        <div class="polaroid-side-front">
+                            <div class="photo-frame-src" style="background-image: url('pic10.jpeg');"></div>
+                            <div class="caption-label">Keep Shining💎</div>
+                        </div>
+                        <div class="polaroid-side-back">
+                            <p>"Never reduce your light for anyone."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter X — Keep On Shining</h2>
+                    <p>The universe has a spectacular way of honoring authentic souls. Your vibe is unmatched, and your presence anchors a beautiful warmth wherever you step.</p>
+                    <p>Never lose your wonder, never step back from your dreams, and above all things—keep shining exactly as you do.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 11 (CHAPTER XI - HAPPY BIRTHDAY TEXT PAGE) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-11">
+            <div class="page-front-surface content-align-center" style="background-color: #fcfaf5;">
+                <div style="font-size: 32px; color: var(--accent-gold); margin-bottom: 15px;">🎂</div>
+                <h1 style="font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 4px; text-transform: uppercase;">Celebration Note</h1>
+                <p style="font-family: 'Caveat', cursive; font-size: 34px; margin-top: 20px; max-width: 85%; color: var(--leather-bound);">
+                    "Keep smiling, keep shining, and keep being you."
+                </p>
+            </div>
+            <div class="page-back-surface content-align-split">
+                <div class="editorial-text-block">
+                    <h2>Chapter XI — Happy Birthday</h2>
+                    <p style="font-size: 20px; font-weight: 600; color: var(--accent-gold); margin-bottom: 10px;">Happy Birthday</p>
+                    <p>Another year.
+                    Another chapter.
+                    Another chance to make beautiful memories.
+                    
+                    Keep smiling.
+                    Keep shining.
+                    Keep being yourself.
+                    
+                    Happy Birthday! Have an amazing year ahead. ❤️</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SHEET LAYER 12 (CLOSING RITUAL & SIGNATURE) ================= -->
+        <div class="book-sheet-layer z-normal-stack" id="sheet-layer-12">
+            <div class="page-front-surface content-align-center" style="background-color: #fbfbf9;">
+                <p style="font-style: italic; font-size: 21px; line-height: 1.8; max-width: 80%; color: #666;">
+                    "Thank you for flipping through these real pages. I hope exploring this interactive notebook made you smile today."
+                </p>
+            </div>
+            <div class="page-back-surface content-align-center">
+                <button class="celebrate-action-btn" id="final-sign-btn" onclick="triggerJournalCelebration()">Sign & Close Journal ✒️</button>
+                <div class="climax-signature-reveal" id="happy-birthday-node">Happy Birthday ❤️</div>
+            </div>
+        </div>
+
+        <!-- OVERLAY CONTROLS HUD FLIP TRACKER -->
+        <div class="journal-bottom-hud">
+            <button class="hud-nav-circle" id="prev-btn-node" onclick="stepSheetIndexLeft()" disabled>←</button>
+            <span class="hud-counter-tag" id="hud-page-counter">Page 1 of 13</span>
+            <button class="hud-nav-circle" id="next-btn-node" onclick="stepSheetIndexRight()">→</button>
+        </div>
+
+    </div>
+
+    <script>
+        
+        // --- Ambient Background Audio Matrix System ---
+        const audioStreamInstance = document.getElementById('piano-stream-node');
+        function toggleAudioStream() {
+            if (audioStreamInstance.paused) {
+                audioStreamInstance.play().catch(() => {});
+                document.getElementById('audio-icon').innerText = "🔊";
+                document.getElementById('audio-string').innerText = "Audio ON";
+            } else {
+                audioStreamInstance.pause();
+                document.getElementById('audio-icon').innerText = "🔇";
+                document.getElementById('audio-string').innerText = "Audio OFF";
+            }
+        }
+
+        // --- INDEPENDENT POLAROID CARD FLIP MECHANIC ---
+        function triggerPolaroidFlip(polaroidElement) {
+            polaroidElement.classList.toggle('is-flipped');
+        }
+
+        // --- HARDCORE 3D INTERACTIVE BOOK SHEET CONTROLLER ENGINE ---
+        let currentActiveSheetIndex = 0;
+        const completeSheetsCount = 13;
+
+        function jumpToSheetIndex(targetSheetIndex) {
+            if (targetSheetIndex < 0 || targetSheetIndex >= completeSheetsCount) return;
+
+            // Manage Sheet Flip Transforms across the array map
+            for (let i = 0; i < completeSheetsCount; i++) {
+                const sheetElement = document.getElementById(`sheet-layer-${i}`);
+                if (i < targetSheetIndex) {
+                    sheetElement.classList.add('sheet-flipped');
+                } else {
+                    sheetElement.classList.remove('sheet-flipped');
+                }
+            }
+
+            // Clear old ribbon highlighters safely
+            for (let i = 0; i < completeSheetsCount; i++) {
+                const tab = document.getElementById(`ribbon-tab-${i}`);
+                if (tab) tab.classList.remove('active-ribbon');
+            }
+
+            // Set updated index
+            currentActiveSheetIndex = targetSheetIndex;
+
+            // Inject fresh ribbon state markers if applicable
+            const activeTab = document.getElementById(`ribbon-tab-${currentActiveSheetIndex}`);
+            if (activeTab) activeTab.classList.add('active-ribbon');
+
+            // Clean slate visibility stack layer redistribution loop
+            for (let i = 0; i < completeSheetsCount; i++) {
+                const targetSheet = document.getElementById(`sheet-layer-${i}`);
+                targetSheet.className = "book-sheet-layer z-normal-stack"; 
+                
+                if (i < targetSheetIndex) {
+                    targetSheet.classList.add('sheet-flipped');
+                }
+            }
+
+            // Prioritize z-index stacking context for pages near top view line
+            if (currentActiveSheetIndex < completeSheetsCount - 1) {
+                document.getElementById(`sheet-layer-${currentActiveSheetIndex}`).className = "book-sheet-layer z-active-top";
+                document.getElementById(`sheet-layer-${currentActiveSheetIndex + 1}`).className = "book-sheet-layer z-active-below";
+            } else {
+                document.getElementById(`sheet-layer-${currentActiveSheetIndex}`).className = "book-sheet-layer z-active-top";
+            }
+
+            // Sync HUD interactive features
+            document.getElementById('prev-btn-node').disabled = (currentActiveSheetIndex === 0);
+            document.getElementById('next-btn-node').disabled = (currentActiveSheetIndex === completeSheetsCount - 1);
+            document.getElementById('hud-page-counter').innerText = `Page ${currentActiveSheetIndex + 1} of ${completeSheetsCount}`;
+        }
+
+        function stepSheetIndexLeft() {
+            jumpToSheetIndex(currentActiveSheetIndex - 1);
+        }
+
+        function stepSheetIndexRight() {
+            jumpToSheetIndex(currentActiveSheetIndex + 1);
+        }
+
+        // --- CLIMAX CELEBRATION DISPATCHER RITUAL ---
+        function triggerJournalCelebration() {
+            const signatureNode = document.getElementById('happy-birthday-node');
+            signatureNode.classList.add('visible');
+            
+            // Confetti Cannon burst payload parameters
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#b3925d', '#241d19', '#fbf9f3', '#e2c99f']
+            });
+        }
+function updateLoveTimer(){
+
+    const start = new Date(2024,4,27,0,0,0); // 27 May 2024
+    const now = new Date();
+
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+
+    if(days < 0){
+        months--;
+        const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        days += prevMonth;
+    }
+
+    if(months < 0){
+        years--;
+        months += 12;
+    }
+
+    let diff = now - new Date(
+        start.getFullYear()+years,
+        start.getMonth()+months,
+        start.getDate()+days
+    );
+
+    let hours = Math.floor(diff/3600000);
+    diff %= 3600000;
+
+    let minutes = Math.floor(diff/60000);
+    diff %= 60000;
+
+    let seconds = Math.floor(diff/1000);
+
+    document.getElementById("years").textContent = years;
+    document.getElementById("months").textContent = months;
+    document.getElementById("days").textContent = days;
+    document.getElementById("hours").textContent = hours;
+    document.getElementById("minutes").textContent = minutes;
+    document.getElementById("seconds").textContent = seconds;
+}
+
+setInterval(updateLoveTimer,1000);
+updateLoveTimer();
+        // Run setup routine on load to lock down boundaries
+        window.addEventListener('DOMContentLoaded', () => {
+            jumpToSheetIndex(0);
+        });
+    </script>
+</body>
+</html>
